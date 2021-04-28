@@ -1,5 +1,5 @@
 const {google} = require('googleapis')
-const creds = require('./credentials.json');
+const creds = require('../credentials/gs_credentials.json');
 
 const run_check = require('./check_pages')
 
@@ -10,8 +10,8 @@ const run_check = require('./check_pages')
     ['https://www.googleapis.com/auth/spreadsheets']
   );
   const read_options = {
-    spreadsheetId: '1n6wZmWrvuGD-Va3dgY7E9mUWF72KbbtT04pMU9oUBR8',
-    range: 'A4:A13'
+    spreadsheetId: '1B_9d48m5kANDPxbcauFPJOZ_VUDhPT7oBv0IZVuoFRY',
+    range: 'L2:L100'
   };
 
   let client_auth;
@@ -49,15 +49,13 @@ const run_check = require('./check_pages')
       auth: client_auth
     })
     const write_options = {
-      spreadsheetId: '1n6wZmWrvuGD-Va3dgY7E9mUWF72KbbtT04pMU9oUBR8',
-      range: 'J4',
-      valueInputOption: 'USER_ENTERED',
+      spreadsheetId: '1B_9d48m5kANDPxbcauFPJOZ_VUDhPT7oBv0IZVuoFRY',
+      range: 'Master Sheet!R2',
       resource :{values: pages_data}
     };
 
     let write_spreadsheet = gsapi.spreadsheets.values.update(write_options)
      console.log(write_spreadsheet)
-
   }
 
 

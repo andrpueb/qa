@@ -10,7 +10,7 @@ import gspread
 
 def get_views_ids():
   try:
-    gc = gspread.service_account(filename="./gs_credentials.json")
+    gc = gspread.service_account(filename="../credentials/gs_credentials.json")
     sh = gc.open('Sidearm QA test sheet')
     views_list = sh.values_get("Sheet1!E4:E")['values']
     clean_views_list = []
@@ -22,7 +22,7 @@ def get_views_ids():
 
 def write_view_data(views_data):
   try:
-    gc = gspread.service_account(filename="./gs_credentials.json")
+    gc = gspread.service_account(filename="../credentials/gs_credentials.json")
     sh = gc.open('Sidearm QA test sheet').sheet1
     sh.update('J4', views_data)
   except:
@@ -40,7 +40,7 @@ def write_view_data(views_data):
 # print(data)
 
 SCOPES = ['https://www.googleapis.com/auth/analytics.readonly']
-CLIENT_SECRETS_PATH = 'ga_secret.json' # Path to client_secrets.json file.
+CLIENT_SECRETS_PATH = '../credentials/ga_secret.json' # Path to client_secrets.json file.
 
 def initialize_analyticsreporting():
     """Initializes the analyticsreporting service object.
