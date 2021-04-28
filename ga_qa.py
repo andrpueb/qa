@@ -5,6 +5,39 @@ from oauth2client import file
 from oauth2client import tools
 import argparse
 
+#google sheets
+import gspread
+
+def get_views_ids():
+  try:
+    gc = gspread.service_account(filename="./gs_credentials.json")
+    sh = gc.open('Sidearm QA test sheet')
+    views_list = sh.values_get("Sheet1!E4:E")['values']
+    clean_views_list = []
+    for view in views_list:
+      clean_views_list.append(view[0])
+    return clean_views_list
+  except:
+    print('there was an error intiliazing the spreadsheet communication')
+
+def write_view_data(views_data):
+  try:
+    gc = gspread.service_account(filename="./gs_credentials.json")
+    sh = gc.open('Sidearm QA test sheet').sheet1
+    sh.update('J4', views_data)
+  except:
+    print('there was an error writing in the spreadsheet')
+
+
+# GS_SCOPE = ['https://www.googleapis.com/auth/spreadsheets	']
+# GS_CREDS = ServiceAccountCredentials.from_json_keyfile_name('gs_credentials.json',scopes=GS_SCOPE)
+# CLIENT = gspread.authorize(GS_CREDS)
+
+# sheet = CLIENT.open('Sidearm QA test sheet').sheet1
+
+# data = sheet.get_all_records()
+
+# print(data)
 
 SCOPES = ['https://www.googleapis.com/auth/analytics.readonly']
 CLIENT_SECRETS_PATH = 'ga_secret.json' # Path to client_secrets.json file.
@@ -35,48 +68,64 @@ def initialize_analyticsreporting():
     return analytics
 
 def get_report(analytics):
-	"""Queries the Analytics Reporting API V4.
-	Args:
-	analytics: An authorized Analytics Reporting API V4 service object.
-	Returns:
-	The Analytics Reporting API V4 response.
-	"""
-	return analytics.reports().batchGet(
-      body={
+  view_id_list = get_views_ids()
+  # view_id_list = ['240454258']
+  views_report = []
+  start_date = '2021-04-20'
+  end_date = '2021-04-24'
+  for view in view_id_list:
+    try:
+      body ={
         'reportRequests': [
-        {
-          'viewId': '240454258',
-          'dateRanges': [{'startDate': '7daysAgo', 'endDate': 'today'}],
-          'metrics': [{'expression': 'ga:sessions'}],
-        }]
+          {
+            'viewId': view,
+            'dateRanges': [{'startDate': start_date, 'endDate': end_date}],
+            'metrics': [
+              {'expression': 'ga:sessions'}
+              # {'expression': 'ga:pageviews'}
+              ],
+          }]
       }
-  	).execute()
 
-def print_response(response):
-	"""Parses and prints the Analytics Reporting API V4 response.
-		Args:
-		response: An Analytics Reporting API V4 response.
-	"""
-	for report in response.get('reports', []):
-		columnHeader = report.get('columnHeader', {})
-		dimensionHeaders = columnHeader.get('dimensions', [])
-		metricHeaders = columnHeader.get('metricHeader', {}).get('metricHeaderEntries', [])
-	for row in report.get('data', {}).get('rows', []):
-		dimensions = row.get('dimensions', [])
-		dateRangeValues = row.get('metrics', [])
+      report = analytics.reports().batchGet(body=body).execute()
+      # print(report)
+      views_report.append(print_response(report, view))
+    except:
+      print('cannot authenticate to this view')
+      views_report.append(['view_id', view, 'sessions', 'ERROR'])
+  print('views report')
+  print(views_report)
+  write_view_data(views_report)
 
-	for header, dimension in zip(dimensionHeaders, dimensions):
-		print (header + ': ' + dimension)
+def print_response(response, view_id):
+  """Parses and prints the Analytics Reporting API V4 response.
 
-	for i, values in enumerate(dateRangeValues):
-		print ('Date range:' + str(i))
-	for metricHeader, value in zip(metricHeaders, values.get('values')):
-		print (metricHeader.get('name') + ': ' + value)
+  Args:
+    response: An Analytics Reporting API V4 response.
+  """
+  view_sessions_data = ['view_id', view_id, 'sessions', '0']
+  for report in response.get('reports', []):
+    columnHeader = report.get('columnHeader', {})
+    dimensionHeaders = columnHeader.get('dimensions', [])
+    metricHeaders = columnHeader.get('metricHeader', {}).get('metricHeaderEntries', [])
+    for row in report.get('data', {}).get('rows', []):
+      dimensions = row.get('dimensions', [])
+      dateRangeValues = row.get('metrics', [])
+      for header, dimension in zip(dimensionHeaders, dimensions):
+        print(header + ': ', dimension)
+
+      for i, values in enumerate(dateRangeValues):
+        print('Date range:', str(i))
+        for metricHeader, value in zip(metricHeaders, values.get('values', '0')):
+          if metricHeader.get('name') == 'ga:sessions':
+            view_sessions_data[3] = value
+          # print(metricHeader.get('name') + ':', value)
+  return(view_sessions_data)
+
 
 def main():
 	analytics = initialize_analyticsreporting()
-	response = get_report(analytics)
-	print_response(response)
+	get_report(analytics)
 
 if __name__ == '__main__':
 	main()
